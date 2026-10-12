@@ -1,20 +1,45 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import LoginScreen from './src/screens/loginScreen';
+import InventarioScreen from './src/screens/solicitudScreen';
+import GestionScreen from './src/screens/perfilScreen';
+import InicioScreen from './src/screens/inicioScreen';
+import ReporteScreen from './src/screens/reporteScreen';
+import MenuInferior from './src/components/menuInferior';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
+  const [usuarioAutenticado, setUsuarioAutenticado] = useState(false);
+  const [pantallaActual, setPantallaActual] = useState('inicio');
+  
+  if (!usuarioAutenticado){
+    return(
+      <LoginScreen onLogin={() => setUsuarioAutenticado(true)}/>
+    )
+  }
+
+  let pantalla;
+  if (pantallaActual === 'inventario'){
+    pantalla = <InventarioScreen/>
+  } else if (pantallaActual === 'gestion'){
+    pantalla = <GestionScreen/>
+  } else if (pantallaActual === 'reporte'){
+    pantalla = <ReporteScreen/>
+  } else{
+    pantalla = <InicioScreen/>
+  }
+
+  return(
+    <View style={styles.contenedor}>
+      {pantalla}
+      <MenuInferior
+        cambiarPantalla={setPantallaActual}
+        pantallaActual={pantallaActual}
+      />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  contenedor: { flex: 1, flexDirection: 'column' },
 });
