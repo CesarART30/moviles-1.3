@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Informe — Context API en solicitudes</title>
+  <style>
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      color: #1a1a1a;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 24px 64px;
+      line-height: 1.5;
+    }
+    h1 { font-size: 26px; line-height: 1.25; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-top: 32px; }
+    .meta { color: #555; margin-top: 0; }
+    figure { margin: 18px 0 8px; }
+    img {
+      width: 280px;
+      border: 1px solid #e4e4e7;
+      border-radius: 16px;
+    }
+    figcaption { font-family: Calibri, "Segoe UI", sans-serif; font-size: 14px; color: #3f3f46; margin-top: 8px; }
+    p, li { font-size: 16px; }
+    code { font-family: Consolas, monospace; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Informe: Context API en la funcionalidad de solicitudes</h1>
+  <p class="meta">Aplicación móvil Inventrex · pantalla Inventario</p>
+
+  <h2>1. Objetivo</h2>
+  <p>
+    Compartir el arreglo de solicitudes entre dos componentes sin pasarse datos por props.
+    Cuando uno agrega o elimina, el otro debe actualizarse solo.
+  </p>
+
+  <h2>2. Qué se implementó</h2>
+  <p>La práctica quedó en una sola funcionalidad: las solicitudes de la pantalla Inventario.</p>
+  <ul>
+    <li><code>src/context/SolicitudesContext.jsx</code> guarda el arreglo y expone <code>agregarSolicitud()</code> y <code>eliminarSolicitud()</code>.</li>
+    <li><code>FormularioSolicitud</code> registra una solicitud y muestra el total.</li>
+    <li><code>ListaSolicitudes</code> muestra las tarjetas, el total y el botón Eliminar.</li>
+  </ul>
+  <p>
+    Los dos componentes usan <code>useSolicitudes()</code>. Ninguno recibe la lista por props.
+    SQLite solo conserva los registros al salir de la pantalla. El estado que ambos ven es el del contexto.
+  </p>
+
+  <h2>3. Capturas del cambio de estado</h2>
+
+  <h3>Captura 1. Estado inicial</h3>
+  <figure>
+    <img src="01-total-cero.png" alt="Formulario y lista con total 0" />
+    <figcaption>
+      Figura 1. Todavía no hay solicitudes. El formulario dice «Total actual: 0» y la lista dice «Total: 0».
+    </figcaption>
+  </figure>
+
+  <h3>Captura 2. Después de agregar</h3>
+  <figure>
+    <img src="02-total-uno.png" alt="Formulario y lista con total 1 y la solicitud Cambio de bodega" />
+    <figcaption>
+      Figura 2. Se guardó «Cambio de bodega». Los dos totales pasaron a 1 y la tarjeta apareció en la lista. El formulario no le envió la solicitud a la lista: ambos leyeron el mismo estado.
+    </figcaption>
+  </figure>
+
+  <h3>Captura 3. Después de eliminar</h3>
+  <figure>
+    <img src="03-despues-de-eliminar.png" alt="Formulario y lista otra vez en total 0" />
+    <figcaption>
+      Figura 3. Al confirmar Eliminar, la tarjeta desapareció y los dos totales volvieron a 0. El formulario también se actualizó, aunque el botón está en la lista.
+    </figcaption>
+  </figure>
+
+  <h2>4. Cómo funciona</h2>
+  <p>
+    <code>SolicitudesProvider</code> envuelve el formulario y la lista. Dentro guarda
+    <code>solicitudes</code> con <code>useState</code>. <code>agregarSolicitud()</code> inserta el registro
+    y hace <code>setSolicitudes</code> con la solicitud nueva al inicio del arreglo.
+    <code>eliminarSolicitud()</code> borra el registro y deja en el arreglo solo las que tienen otro id.
+  </p>
+  <p>
+    React vuelve a dibujar a todos los componentes que consumen ese contexto.
+    Por eso el total del formulario y el total de la lista cambian en el mismo momento.
+  </p>
+  <p>
+    Si se quita el provider, <code>useSolicitudes()</code> no encuentra el estado y los componentes
+    dejan de compartir el arreglo. El error común es poner un <code>useState</code> distinto en cada
+    componente: al guardar en el formulario, la lista no se entera.
+  </p>
+
+  <h2>5. Cómo demostrarlo</h2>
+  <ol>
+    <li>Iniciar sesión y abrir Inventario.</li>
+    <li>Bajar hasta «Registrar solicitud» y anotar que los dos totales coinciden.</li>
+    <li>Escribir asunto y descripción, pulsar «Guardar solicitud» y comprobar que ambos totales suben y aparece la tarjeta.</li>
+    <li>Pulsar Eliminar, confirmar, y comprobar que ambos totales bajan y la tarjeta desaparece.</li>
+  </ol>
+</body>
+</html>

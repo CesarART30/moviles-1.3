@@ -1,58 +1,75 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { colores, vidrioOscuro, textoAjustable } from '../theme';
+
+// Los emojis se reemplazaron por texto: sus colores rompían la paleta blanco / negro / rojo
+const opciones = [
+    { ruta: 'inicio', texto: 'Inicio' },
+    { ruta: 'inventario', texto: 'Inventario' },
+    { ruta: 'reporte', texto: 'Reportes' },
+    { ruta: 'gestion', texto: 'Gestión' },
+    { ruta: 'notificaciones', texto: 'Avisos' },
+];
 
 export default function MenuInferior({ pantallaActual, cambiarPantalla }) {
     return (
         <View style={styles.menu}>
-            <Pressable
-                style={[styles.boton, pantallaActual === 'inicio' && styles.botonActivo]}
-                onPress={() => cambiarPantalla('inicio')}
-            >
-                <Text style={styles.icono}>🏠</Text>
-            </Pressable>
-
-            <Pressable
-                style={[styles.boton, pantallaActual === 'inventario' && styles.botonActivo]}
-                onPress={() => cambiarPantalla('inventario')}
-            >
-                <Text style={styles.icono}>📋</Text>
-            </Pressable>
-
-            <Pressable
-                style={[styles.boton, pantallaActual === 'reporte' && styles.botonActivo]}
-                onPress={() => cambiarPantalla('reporte')}
-            >
-                <Text style={styles.icono}>⚠️</Text>
-            </Pressable>
-
-            <Pressable
-                style={[styles.boton, pantallaActual === 'gestion' && styles.botonActivo]}
-                onPress={() => cambiarPantalla('gestion')}
-            >
-                <Text style={styles.icono}>👤</Text>
-            </Pressable>
+            {opciones.map((opcion) => {
+                const activo = pantallaActual === opcion.ruta;
+                return (
+                    <Pressable
+                        key={opcion.ruta}
+                        style={[styles.boton, activo && styles.botonActivo]}
+                        onPress={() => cambiarPantalla(opcion.ruta)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: activo }}
+                    >
+                        <View style={[styles.punto, activo && styles.puntoActivo]} />
+                        <Text style={[styles.texto, activo && styles.textoActivo]} {...textoAjustable}>{opcion.texto}</Text>
+                    </Pressable>
+                );
+            })}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    // barra flotante de vidrio oscuro: el contenido se desplaza por debajo
     menu: {
+        ...vidrioOscuro,
+        // opaco a propósito: sin blur real, el texto que pasa por debajo se veía a través del menú
+        backgroundColor: colores.negro,
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        bottom: 20,
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        paddingVertical: 12,
-        backgroundColor: '#ffffff',
-        borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
+        padding: 6,
+        borderRadius: 24,
     },
     boton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderRadius: 18,
     },
     botonActivo: {
-        backgroundColor: '#eff6ff',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
-    icono: {
-        fontSize: 24,
+    punto: {
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        marginBottom: 5,
+    },
+    puntoActivo: {
+        backgroundColor: colores.rojo,
+    },
+    texto: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
+    textoActivo: {
+        color: colores.blanco,
     },
 });

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "792602777653",
+    "project_id": "app-hibridas-c7fd2",
+    "storage_bucket": "app-hibridas-c7fd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792602777653:android:2604fa9b597d26f643f97c",
+        "android_client_info": {
+          "package_name": "ec.edu.uleam.inventrex.jpacheco"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNgblQh7GO4GHYfHrGqOl5WlAkj54d90I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "primera-app-movil",
+    "name": "Inventrex",
     "slug": "primera-app-movil",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +10,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "ec.edu.uleam.inventrex.jpacheco",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -19,6 +21,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-sqlite"
+    ],
+    "owner": "jpachecoxddd",
+    "extra": {
+      "eas": {
+        "projectId": "32c31479-494a-440b-ac30-9f742f068577"
+      }
     }
   }
 }

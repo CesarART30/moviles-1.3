@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Clave privada de Firebase (FCM V1): nunca a Git
+*firebase-adminsdk*.json

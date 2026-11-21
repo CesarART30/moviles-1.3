@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { colores, vidrio, vidrioOscuro, textoAjustable } from '../theme';
+import  * as Location from "expo-location"
+import { SolicitudesProvider } from '../context/SolicitudesContext';
+import FormularioSolicitud from '../components/FormularioSolicitud';
+import ListaSolicitudes from '../components/ListaSolicitudes';
 
 export default function InventarioScreen() {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [descripcion, setDescripcion] = useState('');
-  const [imagenes, setImagenes] = useState([]);
-
   const [inventarios] = useState([
     {
       id: 1,
@@ -42,34 +42,72 @@ export default function InventarioScreen() {
     },
   ]);
 
+  // negro = aceptable, rojo claro = revisar, rojo = crítico
   const getDiscrepancyColor = (value) => {
-    if (value < 10) return '#10b981';
-    if (value < 20) return '#f59e0b';
-    return '#ef4444';
+    if (value < 10) return colores.negro;
+    if (value < 20) return colores.rojoClaro;
+    return colores.rojo;
   };
 
   const tiempoRestante = {
     horas: 2,
     minutos: 15,
   };
-
+  const [ubicacion, setUbicacion] = useState(null);
+  const [consultandoUbicacion, setConsultandoUbicacion] = useState(false)
   const porcentajeTiempo = (tiempoRestante.horas * 60 + tiempoRestante.minutos) / (8 * 60) * 100;
 
+
+
+
+  const obtenerUbicacion = async () => {
+    try{
+      setConsultandoUbicacion(true);
+      const location = await Location.requestForegroundPermissionsAsync();
+
+      if(PermissionStatus.status!== "granted"){
+        Alert.alert (
+          "Permiso requerido",
+          "Autoriza el acceso a tu ubicacion para continuar"
+        )
+      }
+
+      const posicion = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      })
+      setUbicacion({
+        latitud: posicion.coords.latitude,
+        longitud: posicion.coords.longitude,
+        precision: posicion.coords.accuracy
+      });
+    }catch (error){
+      Alert.alert (
+        "Ubicacion no disponible",
+        "No se pudo obtener la ubicacion actual."
+      )
+    } finally {
+      setConsultandoUbicacion(false);
+    }
+
+  };
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.titulo}>Inventarios</Text>
+        <Text style={styles.titulo} {...textoAjustable}>Inventarios</Text>
         <Text style={styles.subtitulo}>Gestiona y monitorea tus procesos</Text>
       </View>
 
       {/* Timer Compacto */}
       <View style={styles.timerCard}>
         <View style={styles.timerContent}>
-          <Text style={styles.timerLabel}>Tiempo disponible</Text>
-          <Text style={styles.timerValue}>
-            {tiempoRestante.horas}h {tiempoRestante.minutos}m
-          </Text>
+          <View>
+            <Text style={styles.timerLabel}>Tiempo disponible</Text>
+            <Text style={styles.timerValue} {...textoAjustable}>
+              {tiempoRestante.horas}h {tiempoRestante.minutos}m
+            </Text>
+          </View>
+          <Text style={styles.timerMeta}>de 8 h</Text>
         </View>
         <View style={styles.timerBar}>
           <View
@@ -82,7 +120,7 @@ export default function InventarioScreen() {
       </View>
 
       {/* Botón Crear */}
-      <Pressable style={styles.crearBtn}>
+      <Pressable style={({ pressed }) => [styles.crearBtn, pressed && styles.presionado]}>
         <Text style={styles.crearBtnText}>+ Crear Inventario</Text>
       </Pressable>
 
@@ -98,7 +136,10 @@ export default function InventarioScreen() {
 
             {/* Discrepancias */}
             <View style={styles.discrepancySection}>
-              <Text style={styles.discrepancyValue}>{inv.discrepancias}%</Text>
+              <View style={styles.discrepancyFila}>
+                <Text style={styles.discrepancyValue} maxFontSizeMultiplier={1.2}>{inv.discrepancias}%</Text>
+                <Text style={styles.discrepancyLabel}>discrepancia</Text>
+              </View>
               <View style={styles.progressBar}>
                 <View
                   style={[
@@ -128,6 +169,12 @@ export default function InventarioScreen() {
           </View>
         ))}
       </View>
+
+      {/* Context API: el formulario y la lista comparten el mismo arreglo */}
+      <SolicitudesProvider>
+        <FormularioSolicitud />
+        <ListaSolicitudes />
+      </SolicitudesProvider>
     </ScrollView>
   );
 }
@@ -135,74 +182,90 @@ export default function InventarioScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 16,
-    paddingTop: 20,
+  },
+  contenido: {
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 120,
   },
   header: {
     marginBottom: 20,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: colores.negro,
     marginBottom: 4,
   },
   subtitulo: {
     fontSize: 14,
-    color: '#64748b',
+    color: colores.gris,
   },
 
-  // Timer Compacto
+  // Timer Compacto (vidrio oscuro)
   timerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    ...vidrioOscuro,
+    padding: 18,
+    marginBottom: 14,
   },
   timerContent: {
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 14,
   },
   timerLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 2,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
   },
   timerValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2563eb',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: colores.blanco,
+  },
+  timerMeta: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   timerBar: {
     height: 6,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   timerProgress: {
     height: '100%',
-    backgroundColor: '#2563eb',
+    borderRadius: 3,
+    backgroundColor: colores.rojo,
   },
 
   // Botón Crear
   crearBtn: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: colores.rojo,
+    paddingVertical: 15,
+    borderRadius: 16,
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 24,
+    shadowColor: colores.rojo,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
   },
   crearBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colores.blanco,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  presionado: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
 
   // Grid 2 Columnas
@@ -210,51 +273,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    rowGap: 12,
   },
   card: {
+    ...vidrio,
     width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    padding: 14,
+    borderRadius: 18,
   },
 
   // Card Header
   cardHeader: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   cardNombre: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontSize: 14,
+    fontWeight: '700',
+    color: colores.negro,
     marginBottom: 2,
   },
   cardFecha: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colores.gris,
   },
 
   // Discrepancia Section
   discrepancySection: {
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  discrepancyFila: {
+    flexDirection: 'row',
+    flexWrap: 'wrap', // en pantallas angostas "discrepancia" baja a la siguiente línea
+    alignItems: 'baseline',
+    marginBottom: 6,
   },
   discrepancyValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: colores.negro,
+    marginRight: 6,
+  },
+  discrepancyLabel: {
+    fontSize: 11,
+    color: colores.gris,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: '#e2e8f0',
+    height: 5,
+    backgroundColor: 'rgba(10, 10, 10, 0.08)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
+    borderRadius: 3,
   },
 
   // Stats
@@ -262,38 +334,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
-    marginBottom: 8,
+    borderColor: 'rgba(10, 10, 10, 0.06)',
+    marginBottom: 10,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '700',
+    color: colores.negro,
   },
   statLabel: {
     fontSize: 10,
-    color: '#64748b',
+    color: colores.gris,
   },
   divider: {
     width: 1,
-    height: 20,
-    backgroundColor: '#e2e8f0',
+    height: 22,
+    backgroundColor: 'rgba(10, 10, 10, 0.08)',
   },
 
   // Card Footer
   cardFooter: {
-    paddingTop: 8,
+    paddingTop: 2,
   },
   cardFooterText: {
-    fontSize: 11,
-    color: '#2563eb',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colores.negro,
   },
 });

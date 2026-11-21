@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
+import { colores, textoAjustable } from "../theme";
 
 export default function Titulo({ texto, subtitulo }) {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.titulo}>
+            <Text style={styles.titulo} {...textoAjustable}>
                 {texto}
             </Text>
 
@@ -21,18 +22,20 @@ export default function Titulo({ texto, subtitulo }) {
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 25
+        marginBottom: 24
     },
 
     titulo: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: '#1e293b'
+        fontSize: 30,
+        fontWeight: '800',
+        color: colores.negro,
+        letterSpacing: -0.5
     },
 
     subtitulo: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '500',
-        color: '#64748b'
+        color: colores.gris,
+        marginTop: 4
     }
 })
