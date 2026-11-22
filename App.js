@@ -7,6 +7,7 @@ import LoginScreen from './src/screens/loginScreen';
 import InventarioScreen from './src/screens/solicitudScreen';
 import GestionScreen from './src/screens/perfilScreen';
 import InicioScreen from './src/screens/inicioScreen';
+import ConsultaExterna from './src/screens/ConsultaExterna';
 import ReporteScreen from './src/screens/reporteScreen';
 import MenuInferior from './src/components/menuInferior';
 import Fondo from './src/components/fondo';
@@ -62,6 +63,8 @@ export default function App() {
     pantalla = <GestionScreen/>
   } else if (pantallaActual === 'reporte'){
     pantalla = <ReporteScreen reportes={reportes} setReportes={setReportes}/>
+  } else if (pantallaActual === 'consultaExterna'){
+    pantalla = <ConsultaExterna volver={() => setPantallaActual('inicio')}/>
   } else if (pantallaActual === 'notificaciones'){
     pantalla = NotificacionesPush
       ? <NotificacionesPush/>
@@ -69,7 +72,7 @@ export default function App() {
           <Titulo texto="Notificaciones" subtitulo="No disponibles en Expo Go: ábrelas en la app de desarrollo (APK)."/>
         </View>
   } else{
-    pantalla = <InicioScreen/>
+    pantalla = <InicioScreen abrirConsulta={() => setPantallaActual('consultaExterna')}/>
   }
 
   return(

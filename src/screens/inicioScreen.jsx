@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { colores, vidrio, vidrioOscuro, textoAjustable } from '../theme';
 
-export default function InicioScreen() {
+export default function InicioScreen({ abrirConsulta }) {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
             {/* Header con Botón de Perfil */}
@@ -29,11 +29,11 @@ export default function InicioScreen() {
                     <Text style={styles.numero} {...textoAjustable}>4</Text>
                     <Text style={styles.texto}>Inventarios concretados</Text>
                 </View>
-                <Pressable style={styles.tarjetaBoton}>
+                <Pressable style={styles.tarjetaBoton} onPress={abrirConsulta} accessibilityRole="button">
                     <View style={styles.iconoCirculo}>
-                        <Text style={styles.icono}>+</Text>
+                        <Text style={styles.icono} accessible={false}>↗</Text>
                     </View>
-                    <Text style={styles.textoBoton}>Más información</Text>
+                    <Text style={styles.textoBoton}>Consulta externa</Text>
                 </Pressable>
             </View>
 
