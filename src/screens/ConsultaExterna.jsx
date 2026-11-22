@@ -81,10 +81,10 @@ export default function ConsultaExterna({ volver }) {
                     </Pressable>
                 </View>
             ) : (
-                <View accessibilityRole="list" style={styles.lista}>
+                <View role="list" style={styles.lista}>
                     {posts.length === 0 && <Text style={styles.texto}>No hay publicaciones disponibles.</Text>}
                     {posts.map(({ id, title }) => (
-                        <View key={id} style={styles.tarjeta} accessibilityRole="listitem">
+                        <View key={id} style={styles.tarjeta} role="listitem">
                             <Text style={styles.texto}>{title}</Text>
                         </View>
                     ))}
