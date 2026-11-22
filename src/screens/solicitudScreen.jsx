@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, View, Text, TextInput, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { colores, vidrio, vidrioOscuro, textoAjustable } from '../theme';
 import  * as Location from "expo-location"
 import { SolicitudesProvider } from '../context/SolicitudesContext';
 import FormularioSolicitud from '../components/FormularioSolicitud';
 import ListaSolicitudes from '../components/ListaSolicitudes';
+import { guardarInventarioLocal, listarInventariosLocales } from '../data/inventarios';
 
 function estadoDiscrepancia(valor) {
   if (valor < 10) return { color: colores.negro, texto: 'Aceptable' };
@@ -14,7 +15,16 @@ function estadoDiscrepancia(valor) {
 
 export default function InventarioScreen() {
   const [inventarioSeleccionado, setInventarioSeleccionado] = useState(null);
-  const [inventarios] = useState([
+  const [inventariosLocales, setInventariosLocales] = useState([]);
+  const [carga, setCarga] = useState('cargando');
+  const [intentoCarga, setIntentoCarga] = useState(0);
+  const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [errorFormulario, setErrorFormulario] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const guardadoEnCurso = useRef(false);
+  const [inventariosEjemplo] = useState([
     {
       id: 1,
       nombre: 'Bodega A',
@@ -48,9 +58,52 @@ export default function InventarioScreen() {
       fecha: 'Sep 28',
     },
   ]);
+  const inventarios = [...inventariosLocales, ...inventariosEjemplo];
 
-  function cerrarDetalle() {
+  useEffect(() => {
+    let activa = true;
+    listarInventariosLocales().then((guardados) => {
+      if (!activa) return;
+      setInventariosLocales(guardados);
+      setCarga('lista');
+    }).catch(() => {
+      if (activa) setCarga('error');
+    });
+    return () => { activa = false; };
+  }, [intentoCarga]);
+
+  function cerrarModal() {
+    if (guardadoEnCurso.current) return;
     setInventarioSeleccionado(null);
+    setFormularioAbierto(false);
+    setNombre('');
+    setCategoria('');
+    setErrorFormulario('');
+  }
+
+  async function crearInventario() {
+    if (guardadoEnCurso.current) return;
+    const nombreLimpio = nombre.trim();
+    const categoriaLimpia = categoria.trim();
+    if (!nombreLimpio || !categoriaLimpia) {
+      setErrorFormulario('Ingresa la bodega y la categoría.');
+      return;
+    }
+
+    guardadoEnCurso.current = true;
+    setGuardando(true);
+    setErrorFormulario('');
+    try {
+      const guardado = await guardarInventarioLocal(nombreLimpio, categoriaLimpia);
+      setInventariosLocales((actuales) => [guardado, ...actuales]);
+    } catch {
+      setErrorFormulario('No se pudo guardar el inventario. Inténtalo de nuevo.');
+      return;
+    } finally {
+      guardadoEnCurso.current = false;
+      setGuardando(false);
+    }
+    cerrarModal();
   }
 
   const tiempoRestante = {
@@ -124,9 +177,29 @@ export default function InventarioScreen() {
       </View>
 
       {/* Botón Crear */}
-      <Pressable style={({ pressed }) => [styles.crearBtn, pressed && styles.presionado]}>
+      <Pressable
+        style={({ pressed }) => [styles.crearBtn, carga !== 'lista' && styles.deshabilitado, pressed && styles.presionado]}
+        disabled={carga !== 'lista'}
+        onPress={() => setFormularioAbierto(true)}
+        accessibilityRole="button"
+      >
         <Text style={styles.crearBtnText}>+ Crear Inventario</Text>
       </Pressable>
+      {carga === 'cargando' && <Text style={styles.detalleTexto}>Cargando inventarios guardados…</Text>}
+      {carga === 'error' && (
+        <View style={styles.errorCarga}>
+          <Text style={styles.errorTexto} accessibilityRole="alert">No se pudieron cargar los inventarios guardados.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setCarga('cargando');
+              setIntentoCarga((actual) => actual + 1);
+            }}
+          >
+            <Text style={styles.cardFooterText}>Reintentar carga</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Grid 2 Columnas */}
       <View style={styles.gridContainer}>
@@ -139,20 +212,24 @@ export default function InventarioScreen() {
             </View>
 
             {/* Discrepancias */}
-            <View style={styles.discrepancySection}>
-              <View style={styles.discrepancyFila}>
-                <Text style={styles.discrepancyValue} maxFontSizeMultiplier={1.2}>{inv.discrepancias}%</Text>
-                <Text style={styles.discrepancyLabel}>discrepancia</Text>
+            {inv.discrepancias === null ? (
+              <Text style={[styles.discrepancyLabel, styles.discrepancySection]}>Conteo pendiente</Text>
+            ) : (
+              <View style={styles.discrepancySection}>
+                <View style={styles.discrepancyFila}>
+                  <Text style={styles.discrepancyValue} maxFontSizeMultiplier={1.2}>{inv.discrepancias}%</Text>
+                  <Text style={styles.discrepancyLabel}>discrepancia</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${inv.discrepancias}%`, backgroundColor: estadoDiscrepancia(inv.discrepancias).color },
+                    ]}
+                  />
+                </View>
               </View>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${inv.discrepancias}%`, backgroundColor: estadoDiscrepancia(inv.discrepancias).color },
-                  ]}
-                />
-              </View>
-            </View>
+            )}
 
             {/* Stats */}
             <View style={styles.statsContainer}>
@@ -179,21 +256,70 @@ export default function InventarioScreen() {
         ))}
       </View>
 
-      {inventarioSeleccionado && (
-        <Modal animationType="fade" transparent onRequestClose={cerrarDetalle}>
+      {(inventarioSeleccionado || formularioAbierto) && (
+        <Modal animationType="fade" transparent onRequestClose={cerrarModal}>
           <View style={styles.modalFondo}>
-            <ScrollView style={styles.modalVentana} contentContainerStyle={styles.modalContenido}>
-              <Text style={styles.titulo} accessibilityRole="header">{inventarioSeleccionado.nombre}</Text>
-              <Text style={styles.detalleTexto}>Categoría: {inventarioSeleccionado.categoria}</Text>
-              <Text style={styles.detalleTexto}>Último conteo: {inventarioSeleccionado.fecha}</Text>
-              <Text style={styles.detalleTexto}>Productos contados: {inventarioSeleccionado.productosContados}</Text>
-              <Text style={styles.detalleTexto}>
-                Discrepancia: {inventarioSeleccionado.discrepancias}%
-                {' · '}{estadoDiscrepancia(inventarioSeleccionado.discrepancias).texto}
-              </Text>
-              <Pressable style={styles.modalBoton} onPress={cerrarDetalle} accessibilityRole="button">
-                <Text style={styles.crearBtnText}>Cerrar detalles</Text>
-              </Pressable>
+            <ScrollView
+              style={styles.modalVentana}
+              contentContainerStyle={styles.modalContenido}
+              keyboardShouldPersistTaps="handled"
+            >
+              {inventarioSeleccionado ? (
+                <>
+                  <Text style={styles.titulo} accessibilityRole="header">{inventarioSeleccionado.nombre}</Text>
+                  <Text style={styles.detalleTexto}>Categoría: {inventarioSeleccionado.categoria}</Text>
+                  <Text style={styles.detalleTexto}>
+                    {inventarioSeleccionado.discrepancias === null ? 'Fecha de creación' : 'Último conteo'}: {inventarioSeleccionado.fecha}
+                  </Text>
+                  <Text style={styles.detalleTexto}>Productos contados: {inventarioSeleccionado.productosContados}</Text>
+                  <Text style={styles.detalleTexto}>
+                    {inventarioSeleccionado.discrepancias === null
+                      ? 'Conteo pendiente'
+                      : `Discrepancia: ${inventarioSeleccionado.discrepancias}% · ${estadoDiscrepancia(inventarioSeleccionado.discrepancias).texto}`}
+                  </Text>
+                  <Pressable style={styles.modalBoton} onPress={cerrarModal} accessibilityRole="button">
+                    <Text style={styles.crearBtnText}>Cerrar detalles</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.titulo} accessibilityRole="header">Crear inventario</Text>
+                  <Text style={styles.detalleTexto}>Bodega</Text>
+                  <TextInput
+                    style={styles.campo}
+                    accessibilityLabel="Bodega del inventario"
+                    value={nombre}
+                    onChangeText={setNombre}
+                    maxLength={80}
+                    editable={!guardando}
+                  />
+                  <Text style={styles.detalleTexto}>Categoría</Text>
+                  <TextInput
+                    style={styles.campo}
+                    accessibilityLabel="Categoría del inventario"
+                    value={categoria}
+                    onChangeText={setCategoria}
+                    maxLength={80}
+                    editable={!guardando}
+                  />
+                  {!!errorFormulario && (
+                    <Text style={styles.errorTexto} accessibilityRole="alert">{errorFormulario}</Text>
+                  )}
+                  <View style={styles.accionesModal}>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={[styles.modalBoton, styles.guardarBoton, guardando && styles.deshabilitado]}
+                      onPress={crearInventario}
+                      disabled={guardando}
+                    >
+                      <Text style={styles.crearBtnText}>{guardando ? 'Guardando…' : 'Guardar inventario'}</Text>
+                    </Pressable>
+                    <Pressable style={styles.modalBoton} onPress={cerrarModal} accessibilityRole="button" disabled={guardando}>
+                      <Text style={styles.crearBtnText}>Cancelar</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
             </ScrollView>
           </View>
         </Modal>
@@ -414,6 +540,19 @@ const styles = StyleSheet.create({
   },
   modalContenido: { padding: 20, gap: 12 },
   detalleTexto: { fontSize: 15, lineHeight: 22, color: colores.grisOscuro },
+  campo: {
+    borderWidth: 1,
+    borderColor: colores.grisClaro,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: colores.negro,
+  },
+  errorCarga: { marginBottom: 16, gap: 8 },
+  errorTexto: { color: colores.rojo, fontSize: 14 },
+  accionesModal: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  guardarBoton: { backgroundColor: colores.rojo },
+  deshabilitado: { opacity: 0.5 },
   modalBoton: {
     alignSelf: 'flex-start',
     backgroundColor: colores.negro,

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import * as SQLite from 'expo-sqlite';
+import { abrirBaseLocal } from '../data/baseLocal';
 
 // Un solo arreglo de solicitudes para toda la funcionalidad.
 // FormularioSolicitud y ListaSolicitudes lo leen desde aquí, sin pasarse props.
@@ -15,15 +15,7 @@ export function SolicitudesProvider({ children }) {
 
         async function iniciar() {
             try {
-                const conexion = await SQLite.openDatabaseAsync('solicitudes.db');
-                await conexion.execAsync(`
-                    CREATE TABLE IF NOT EXISTS solicitudes (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        asunto TEXT NOT NULL,
-                        descripcion TEXT NOT NULL,
-                        sincronizado INTEGER NOT NULL DEFAULT 0
-                    );
-                `);
+                const conexion = await abrirBaseLocal();
                 const filas = await conexion.getAllAsync(
                     'SELECT * FROM solicitudes ORDER BY id DESC'
                 );
