@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { Modal, View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { colores, vidrio, vidrioOscuro, textoAjustable } from '../theme';
 import  * as Location from "expo-location"
 import { SolicitudesProvider } from '../context/SolicitudesContext';
 import FormularioSolicitud from '../components/FormularioSolicitud';
 import ListaSolicitudes from '../components/ListaSolicitudes';
 
+function estadoDiscrepancia(valor) {
+  if (valor < 10) return { color: colores.negro, texto: 'Aceptable' };
+  if (valor < 20) return { color: colores.rojoClaro, texto: 'Requiere revisión' };
+  return { color: colores.rojo, texto: 'Crítica' };
+}
+
 export default function InventarioScreen() {
+  const [inventarioSeleccionado, setInventarioSeleccionado] = useState(null);
   const [inventarios] = useState([
     {
       id: 1,
@@ -42,12 +49,9 @@ export default function InventarioScreen() {
     },
   ]);
 
-  // negro = aceptable, rojo claro = revisar, rojo = crítico
-  const getDiscrepancyColor = (value) => {
-    if (value < 10) return colores.negro;
-    if (value < 20) return colores.rojoClaro;
-    return colores.rojo;
-  };
+  function cerrarDetalle() {
+    setInventarioSeleccionado(null);
+  }
 
   const tiempoRestante = {
     horas: 2,
@@ -144,7 +148,7 @@ export default function InventarioScreen() {
                 <View
                   style={[
                     styles.progressFill,
-                    { width: `${inv.discrepancias}%`, backgroundColor: getDiscrepancyColor(inv.discrepancias) },
+                    { width: `${inv.discrepancias}%`, backgroundColor: estadoDiscrepancia(inv.discrepancias).color },
                   ]}
                 />
               </View>
@@ -163,12 +167,37 @@ export default function InventarioScreen() {
             </View>
 
             {/* Footer */}
-            <Pressable style={styles.cardFooter}>
+            <Pressable
+              style={styles.cardFooter}
+              onPress={() => setInventarioSeleccionado(inv)}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver detalles de ${inv.nombre}`}
+            >
               <Text style={styles.cardFooterText}>Ver detalles →</Text>
             </Pressable>
           </View>
         ))}
       </View>
+
+      {inventarioSeleccionado && (
+        <Modal animationType="fade" transparent onRequestClose={cerrarDetalle}>
+          <View style={styles.modalFondo}>
+            <ScrollView style={styles.modalVentana} contentContainerStyle={styles.modalContenido}>
+              <Text style={styles.titulo} accessibilityRole="header">{inventarioSeleccionado.nombre}</Text>
+              <Text style={styles.detalleTexto}>Categoría: {inventarioSeleccionado.categoria}</Text>
+              <Text style={styles.detalleTexto}>Último conteo: {inventarioSeleccionado.fecha}</Text>
+              <Text style={styles.detalleTexto}>Productos contados: {inventarioSeleccionado.productosContados}</Text>
+              <Text style={styles.detalleTexto}>
+                Discrepancia: {inventarioSeleccionado.discrepancias}%
+                {' · '}{estadoDiscrepancia(inventarioSeleccionado.discrepancias).texto}
+              </Text>
+              <Pressable style={styles.modalBoton} onPress={cerrarDetalle} accessibilityRole="button">
+                <Text style={styles.crearBtnText}>Cerrar detalles</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
 
       {/* Context API: el formulario y la lista comparten el mismo arreglo */}
       <SolicitudesProvider>
@@ -367,5 +396,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colores.negro,
+  },
+  modalFondo: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(10, 10, 10, 0.5)',
+  },
+  modalVentana: {
+    flexGrow: 0,
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    alignSelf: 'center',
+    backgroundColor: colores.blanco,
+    borderRadius: 20,
+  },
+  modalContenido: { padding: 20, gap: 12 },
+  detalleTexto: { fontSize: 15, lineHeight: 22, color: colores.grisOscuro },
+  modalBoton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colores.negro,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 4,
   },
 });
